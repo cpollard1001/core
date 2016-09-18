@@ -46,7 +46,8 @@ program._storj.PrivateClient = function(options) {
 
   return storj.BridgeClient(program.url, merge({
     keypair: utils.loadKeyPair(),
-    logger: logger(program._storj.loglevel()).log
+    email: utils.loadEmail(),
+    logger: logger(program._storj.loglevel()).log,
   }, options));
 };
 

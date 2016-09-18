@@ -13,6 +13,7 @@ var rimraf = require('rimraf');
 var HOME = platform !== 'win32' ? process.env.HOME : process.env.USERPROFILE;
 var DATADIR = path.join(HOME, '.storjcli');
 var KEYPATH = path.join(DATADIR, 'id_ecdsa');
+var EMAILPATH = path.join(DATADIR, 'id_email');
 
 module.exports.getConfirmation = function(msg, callback) {
   prompt.start();
@@ -85,6 +86,14 @@ module.exports.loadKeyPair = function(){
   }
 
   return storj.KeyPair(fs.readFileSync(KEYPATH).toString());
+};
+
+module.exports.loadEmail = function(){
+  if (!storj.utils.existsSync(EMAILPATH)) {
+    return null;
+  }
+
+  return fs.readFileSync(EMAILPATH).toString();
 };
 
 module.exports.getKeyRing = function(keypass, callback) {
