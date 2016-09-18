@@ -83,15 +83,18 @@ module.exports.logout = function() {
   var keypair = utils.loadKeyPair();
 
   client.destroyPublicKey(keypair.getPublicKey(), function(err) {
+
+    if (storj.utils.existsSync(EMAILPATH)) {
+      fs.unlinkSync(EMAILPATH);
+    }
+
     if (err) {
       log('info', 'This device has been successfully unpaired.');
       log('warn', 'Failed to revoke key, you may need to do it manually.');
       log('warn', 'Reason: ' + err.message);
-      fs.unlinkSync(EMAILPATH);
       return fs.unlinkSync(KEYPATH);
     }
 
-    fs.unlinkSync(EMAILPATH);
     fs.unlinkSync(KEYPATH);
     log('info', 'This device has been successfully unpaired.');
   });
