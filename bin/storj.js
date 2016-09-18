@@ -32,6 +32,8 @@ program.option('-u, --url <url>', 'set the base url for the api');
 program.option('-k, --keypass <password>', 'unlock keyring without prompt');
 program.option('-d, --debug', 'display debug data', 4);
 
+program.parse(process.argv);
+
 program._storj.loglevel = function() {
   return program.debug || 3;
 };
