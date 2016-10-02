@@ -59,7 +59,8 @@ describe('Protocol', function() {
           },
           _pendingContracts: {
             adc83b19e793491b1c6ea0fd8b46cd9f32e592fc: function() {}
-          }
+          },
+          acceptOffer: sinon.stub()
         }
       });
       var _verify = sinon.stub(proto, '_verifyContract').callsArg(2);
@@ -77,6 +78,37 @@ describe('Protocol', function() {
       });
     });
 
+    it('should emit Network#unhandledOfferResolved', function(done) {
+      var _save = sinon.stub().callsArg(1);
+      var _network = new EventEmitter();
+      _network._logger = Logger(0);
+      _network.storageManager = { save: _save };
+      _network._pendingContracts = {};
+      var proto = new Protocol({
+        network: _network
+      });
+      var _verify = sinon.stub(proto, '_verifyContract').callsArgWith(
+        2
+      );
+      proto.handleOffer({
+        contract: { data_hash: 'adc83b19e793491b1c6ea0fd8b46cd9f32e592fc' },
+        contact: {
+          address: '127.0.0.1',
+          port: 1337,
+          nodeID: 'adc83b19e793491b1c6ea0fd8b46cd9f32e592fc'
+        }
+      }, function(err) {
+        _verify.restore();
+        expect(err).to.equal(null);
+        _network.on('unhandledOfferResolved', function(contact, contract) {
+          expect(contract.get('data_hash')).to.equal(
+            'adc83b19e793491b1c6ea0fd8b46cd9f32e592fc'
+          );
+          done();
+        });
+      });
+    });
+
     it('should succeed and start consignment', function(done) {
       var _save = sinon.stub().callsArg(1);
       var _doConsign = sinon.stub();
@@ -88,6 +120,9 @@ describe('Protocol', function() {
           },
           _pendingContracts: {
             adc83b19e793491b1c6ea0fd8b46cd9f32e592fc: _doConsign
+          },
+          acceptOffer: function() {
+            _doConsign();
           }
         }
       });
@@ -146,7 +181,7 @@ describe('Protocol', function() {
       var proto = new Protocol({
         network: {
           _logger: Logger(0),
-          keypair: KeyPair(),
+          keyPair: KeyPair(),
           _pendingContracts: {
             adc83b19e793491b1c6ea0fd8b46cd9f32e592fc: function() {}
           }
@@ -171,7 +206,7 @@ describe('Protocol', function() {
       var proto = new Protocol({
         network: {
           _logger: Logger(0),
-          keypair: KeyPair(),
+          keyPair: KeyPair(),
           _pendingContracts: {
             adc83b19e793491b1c6ea0fd8b46cd9f32e592fc: function() {}
           }
@@ -200,7 +235,7 @@ describe('Protocol', function() {
       var proto = new Protocol({
         network: {
           _logger: Logger(0),
-          keypair: KeyPair(),
+          keyPair: KeyPair(),
           _pendingContracts: {
             adc83b19e793491b1c6ea0fd8b46cd9f32e592fc: callback
           }
@@ -227,9 +262,10 @@ describe('Protocol', function() {
       var proto = new Protocol({
         network: {
           _logger: Logger(0),
-          keypair: KeyPair(),
+          keyPair: KeyPair(),
           _pendingContracts: {},
-          emit: sinon.stub()
+          emit: sinon.stub(),
+          listenerCount: sinon.stub().returns(0)
         }
       });
       var contract = {
@@ -249,13 +285,41 @@ describe('Protocol', function() {
       });
     });
 
+    it('should emit an unhandled offer if we are listening', function(done) {
+      var _network = new EventEmitter();
+      _network._logger = Logger(0);
+      _network.keyPair = KeyPair();
+      _network._pendingContracts = {};
+      var proto = new Protocol({
+        network: _network
+      });
+      var contract = {
+        get: sinon.stub().returns('adc83b19e793491b1c6ea0fd8b46cd9f32e592fc'),
+        verify: sinon.stub().returns(true),
+        isComplete: sinon.stub().returns(true),
+        sign: sinon.stub()
+      };
+      var contact = {
+        address: '127.0.0.1',
+        port: 1337,
+        nodeID: 'adc83b19e793491b1c6ea0fd8b46cd9f32e592fc'
+      };
+      _network.on('unhandledOffer', function(contract, contact, resolver) {
+        resolver(null);
+      });
+      proto._verifyContract(contract, contact, function(err) {
+        expect(err).to.equal(null);
+        done();
+      });
+    });
+
     it('should succeed and callback without error', function(done) {
       var pendingCb = function() {};
       pendingCb.blacklist = [];
       var proto = new Protocol({
         network: {
           _logger: Logger(0),
-          keypair: KeyPair(),
+          keyPair: KeyPair(),
           _pendingContracts: {
             adc83b19e793491b1c6ea0fd8b46cd9f32e592fc: pendingCb
           }
